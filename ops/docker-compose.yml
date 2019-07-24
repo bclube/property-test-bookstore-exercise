@@ -1,0 +1,30 @@
+app:
+  image: elixir:latest
+  environment:
+    - MIX_ENV=dev
+  command:
+    - bash
+  volumes:
+    - ../:/app
+  working_dir: /app
+  links:
+    - db
+db:
+  image: postgres:9.6
+  ports:
+    - "5432:5432"
+  environment:
+    - POSTGRES_USER=postgres
+    - POSTGRES_PASSWORD=postgres
+    - POSTGRES_HOST=db
+  volumes:
+    # Direct volume mounts in Windows don't work with postgresql. Results in
+    # following error:
+    #   ** FATAL:  data directory "/var/lib/postgresql/data" has wrong ownership
+    # Create persistent volume using Docker like this:
+    # $> docker volume create --name bookstore-postgres-volume -d local
+    # ...then use that volume here:
+    - "bookstore-postgres-volume:/var/lib/postgresql/data"
+
+# To use this file, navigate to the directory containing this file and run:
+# > docker-compose run --rm app
