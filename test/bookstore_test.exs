@@ -30,11 +30,7 @@ defmodule BookstoreTest do
   ###
   ### Generators
   ###
-  def title() do
-    let s <- utf8() do
-      elements([s, String.to_charlist(s)])
-    end
-  end
+  def title(), do: friendly_unicode()
 
   def title(state) do
     state
@@ -45,11 +41,7 @@ defmodule BookstoreTest do
     |> elements()
   end
 
-  def author() do
-    let s <- utf8() do
-      elements([s, String.to_charlist(s)])
-    end
-  end
+  def author(), do: friendly_unicode()
 
   def author(state) do
     state
@@ -57,6 +49,18 @@ defmodule BookstoreTest do
     |> Stream.map(&elem(&1, 2))
     |> Enum.map(&partial/1)
     |> elements()
+  end
+
+  def friendly_unicode() do
+    bad_chars = [<<0>>, "\\", "_", "%"]
+    friendly_gen =
+      such_that s <- utf8(),
+        when: (not contains_any?(s, bad_chars))
+        && String.length(s) < 256
+
+    let x <- friendly_gen do
+      elements([x, String.to_charlist(x)])
+    end
   end
 
   def isbn() do
