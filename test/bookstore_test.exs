@@ -36,8 +36,7 @@ defmodule BookstoreTest do
     state
     |> Map.values()
     |> Stream.map(&elem(&1, 1))
-    |> Stream.map(&partial/1)
-    |> Enum.map(&String.to_charlist/1)
+    |> Enum.map(&partial/1)
     |> elements()
   end
 
@@ -140,6 +139,20 @@ defmodule BookstoreTest do
   def precondition(s, {:call, _, :add_copy_new, [isbn]}),
     do: not has_isbn(s, isbn)
 
+  def precondition(s, {:call, _, :borrow_copy_avail, [isbn]}) do
+    case Map.fetch(s, isbn) do
+      {:ok, {_, _, _, _, n}} when n > 0 -> true
+      _ -> false
+    end
+  end
+
+  def precondition(s, {:call, _, :borrow_copy_unavail, [isbn]}) do
+    case Map.fetch(s, isbn) do
+      {:ok, {_, _, _, _, 0}} -> true
+      _ -> false
+    end
+  end
+
   def precondition(s, {:call, _, :borrow_copy_unknown, [isbn]}),
     do: not has_isbn(s, isbn)
 
@@ -147,7 +160,7 @@ defmodule BookstoreTest do
     do: like_author(s, auth)
 
   def precondition(s, {:call, _, :find_book_by_author_unknown, [auth]}),
-    do: not has_isbn(s, auth)
+    do: not like_author(s, auth)
 
   def precondition(s, {:call, _, :find_book_by_isbn_unknown, [isbn]}),
     do: not has_isbn(s, isbn)
@@ -156,7 +169,21 @@ defmodule BookstoreTest do
     do: like_title(s, title)
 
   def precondition(s, {:call, _, :find_book_by_title_unknown, [title]}),
-    do: not has_isbn(s, title)
+    do: not like_title(s, title)
+
+  def precondition(s, {:call, _, :return_copy_existing, [isbn]}) do
+    case Map.fetch(s, isbn) do
+      {:ok, {_, _, _, owned, avail}} when owned > avail and owned > 0 -> true
+      _ -> false
+    end
+  end
+
+  def precondition(s, {:call, _, :return_copy_full, [isbn]}) do
+    case Map.fetch(s, isbn) do
+      {:ok, {_, _, _, n, n}} when n > 0 -> true
+      _ -> false
+    end
+  end
 
   def precondition(s, {:call, _, :return_copy_unknown, [isbn]}),
     do: not has_isbn(s, isbn)
@@ -179,17 +206,18 @@ defmodule BookstoreTest do
   def postcondition(_, {_, _, :return_copy_unknown, _}, {:error, :not_found}), do: true
 
   def postcondition(state, {_, _, :find_book_by_isbn_exists, [isbn]}, {:ok, [book]}),
-    do: book == Map.fetch!(state, isbn)
+    do: book_equal(book, Map.get(state, isbn, nil))
 
   def postcondition(state, {_, _, :find_book_by_author_matching, [auth]}, {:ok, books}) do
     expected_books =
       state
-      |> Map.keys()
-      |> Stream.map(&elem(&1, 2))
-      |> Stream.filter(&contains?(&1, auth))
-      |> MapSet.new()
+      |> Map.values()
+      |> Stream.filter(&(&1 |> elem(2) |> contains?(auth)))
+      |> Enum.sort()
 
-    Enum.all?(books, &Map.member?(expected_books, &1))
+    books
+    |> Enum.sort()
+    |> books_equal(expected_books)
   end
 
   def postcondition(_, {_, _, :find_book_by_author_unknown, _}, {:ok, []}), do: true
@@ -197,12 +225,13 @@ defmodule BookstoreTest do
   def postcondition(state, {_, _, :find_book_by_title_matching, [title]}, {:ok, books}) do
     expected_books =
       state
-      |> Map.keys()
-      |> Stream.map(&elem(&1, 1))
-      |> Stream.filter(&contains?(&1, title))
-      |> MapSet.new()
+      |> Map.values()
+      |> Stream.filter(&(&1 |> elem(1) |> contains?(title)))
+      |> Enum.sort()
 
-    Enum.all?(books, &Map.member?(expected_books, &1))
+    books
+    |> Enum.sort()
+    |> books_equal(expected_books)
   end
 
   def postcondition(_, {_, _, :find_book_by_title_unknown, _}, {:ok, []}), do: true
@@ -245,6 +274,35 @@ defmodule BookstoreTest do
   ### Helpers
   ###
   def has_isbn(map, isbn), do: Map.has_key?(map, isbn)
+
+  defp books_equal([], []) do
+    true
+  end
+
+  defp books_equal([a | as], [b | bs]) do
+    book_equal(a, b) && books_equal(as, bs)
+  end
+
+  defp books_equal(_, _) do
+    false
+  end
+
+  defp book_equal(
+         {isbn_a, title_a, author_a, owned_a, avail_a},
+         {isbn_b, title_b, author_b, owned_b, avail_b}
+       ) do
+    {isbn_a, owned_a, avail_a} == {isbn_b, owned_b, avail_b} &&
+      String.equivalent?(
+        IO.chardata_to_string(title_a),
+        IO.chardata_to_string(title_b)
+      ) &&
+      String.equivalent?(
+        IO.chardata_to_string(author_a),
+        IO.chardata_to_string(author_b)
+      )
+  end
+
+  defp book_equal(_, _), do: false
 
   def like_author(map, auth) do
     map
