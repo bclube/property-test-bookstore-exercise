@@ -147,7 +147,9 @@ defmodule Bookstore.DB do
 
   defp handle_select({{:select, _}, list}), do: {:ok, list}
   defp handle_select(error), do: error
+
   defp handle_single_update({{:update, 1}, _}), do: :ok
+  defp handle_single_update({{:update, 0}, _}), do: {:error, :not_found}
   defp handle_single_update({:error, reason}), do: {:error, reason}
   defp handle_single_update(other), do: {:error, other}
 end
