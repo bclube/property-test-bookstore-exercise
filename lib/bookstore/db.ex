@@ -30,7 +30,7 @@ defmodule Bookstore.DB do
 
     case run_query(:add_book, [isbn, bin_title, bin_author, owned, avail]) do
       {{:insert, 0, 1}, []} -> :ok
-      {:error, reason} -> {:error, reason}
+      {:error, _reason} = response -> response
       other -> {:error, other}
     end
   end

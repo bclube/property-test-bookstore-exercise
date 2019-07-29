@@ -29,7 +29,10 @@ WHERE isbn = $1;
 
 -- Borrow a copy of a book
 -- :borrow_copy
-UPDATE books SET available = available - 1 WHERE isbn = $1 AND available > 0;
+UPDATE books
+SET available = available - 1
+WHERE isbn = $1
+  AND available > 0;
 
 -- Return a copy of a book
 -- :return_copy
@@ -37,10 +40,16 @@ UPDATE books SET available = available + 1 WHERE isbn = $1;
 
 -- Find books
 -- :find_by_author
-SELECT * FROM books WHERE author LIKE $1;
+SELECT *
+FROM books
+WHERE author LIKE $1;
 
 -- :find_by_isbn
-SELECT * FROM books WHERE isbn = $1;
+SELECT *
+FROM books
+WHERE isbn = $1;
 
 -- :find_by_title
-SELECT * FROM books WHERE title LIKE $1;
+SELECT *
+FROM books
+WHERE title LIKE $1;

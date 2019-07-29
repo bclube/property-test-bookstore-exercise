@@ -52,10 +52,14 @@ defmodule BookstoreTest do
 
   def friendly_unicode() do
     bad_chars = [<<0>>, "\\", "_", "%"]
+
     friendly_gen =
-      such_that s <- utf8(),
-        when: (not contains_any?(s, bad_chars))
-        && String.length(s) < 256
+      such_that(
+        s <- utf8(),
+        when:
+          not contains_any?(s, bad_chars) &&
+            String.length(s) < 256
+      )
 
     let x <- friendly_gen do
       elements([x, String.to_charlist(x)])
