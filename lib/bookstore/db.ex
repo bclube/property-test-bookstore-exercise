@@ -1,8 +1,4 @@
 defmodule Bookstore.DB do
-  def create_database do
-    run_query(:create_database, [])
-  end
-
   @doc """
   Create the database table required for the bookstore
   """

@@ -1,7 +1,3 @@
--- Create database
--- :create_database
-CREATE DATABASE bookstore_db;
-
 -- Setup the table for the book database
 -- :setup_table_books
 CREATE TABLE books (
