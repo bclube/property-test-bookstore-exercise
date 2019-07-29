@@ -19,9 +19,34 @@ defmodule BookstoreTest do
       |> aggregate(command_names(cmds))
       |> when_fail(
         IO.puts("""
+        Commands: #{inspect(command_names(cmds), pretty: true)}
+        History: #{inspect(history, pretty: true)}
+        State: #{inspect(state, pretty: true)}
+        Result: #{inspect(result, pretty: true)}
+        """)
+      )
+    end
+  end
+
+  property "parallel stateful property", [:verbose] do
+    forall cmds <- parallel_commands(__MODULE__) do
+      {:ok, apps} = Application.ensure_all_started(:bookstore)
+      Bookstore.DB.setup()
+      {history, state, result} = run_parallel_commands(__MODULE__, cmds)
+      Bookstore.DB.teardown()
+      for app <- apps, do: Application.stop(app)
+
+      (result == :ok)
+      |> aggregate(command_names(cmds))
+      |> when_fail(
+        IO.puts("""
+        =======
+        Failing command sequence
+        #{inspect(cmds)}
+        At state: #{inspect(state)}
+        =======
+        Result: #{inspect(result)}
         History: #{inspect(history)}
-        State: #{inspect(state)}
-        Result: #{inspect(state)}
         """)
       )
     end
