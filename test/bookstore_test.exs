@@ -102,13 +102,13 @@ defmodule BookstoreTest do
   @impl true
   def command(state) do
     always_possible = [
-      {:call, BookShim, :add_book_new, [isbn(), title(), author(), 1, 1]},
-      {:call, BookShim, :add_copy_new, [isbn()]},
-      {:call, BookShim, :borrow_copy_unknown, [isbn()]},
-      {:call, BookShim, :find_book_by_author_unknown, [author()]},
-      {:call, BookShim, :find_book_by_isbn_unknown, [isbn()]},
-      {:call, BookShim, :find_book_by_title_unknown, [title()]},
-      {:call, BookShim, :return_copy_unknown, [isbn()]}
+      {:call, __MODULE__, :add_book_new, [isbn(), title(), author(), 1, 1]},
+      {:call, __MODULE__, :add_copy_new, [isbn()]},
+      {:call, __MODULE__, :borrow_copy_unknown, [isbn()]},
+      {:call, __MODULE__, :find_book_by_author_unknown, [author()]},
+      {:call, __MODULE__, :find_book_by_isbn_unknown, [isbn()]},
+      {:call, __MODULE__, :find_book_by_title_unknown, [title()]},
+      {:call, __MODULE__, :return_copy_unknown, [isbn()]}
     ]
 
     relies_on_state =
@@ -116,15 +116,15 @@ defmodule BookstoreTest do
         []
       else
         [
-          {:call, BookShim, :add_book_existing, [isbn(state), title(), author(), 1, 1]},
-          {:call, BookShim, :add_copy_existing, [isbn(state)]},
-          {:call, BookShim, :borrow_copy_avail, [isbn(state)]},
-          {:call, Bookshim, :borrow_copy_unavail, [isbn(state)]},
-          {:call, BookShim, :return_copy_existing, [isbn(state)]},
-          {:call, BookShim, :return_copy_full, [isbn(state)]},
-          {:call, BookShim, :find_book_by_isbn_exists, [isbn(state)]},
-          {:call, BookShim, :find_book_by_author_matching, [author(state)]},
-          {:call, BookShim, :find_book_by_title_matching, [title(state)]}
+          {:call, __MODULE__, :add_book_existing, [isbn(state), title(), author(), 1, 1]},
+          {:call, __MODULE__, :add_copy_existing, [isbn(state)]},
+          {:call, __MODULE__, :borrow_copy_avail, [isbn(state)]},
+          {:call, __MODULE__, :borrow_copy_unavail, [isbn(state)]},
+          {:call, __MODULE__, :return_copy_existing, [isbn(state)]},
+          {:call, __MODULE__, :return_copy_full, [isbn(state)]},
+          {:call, __MODULE__, :find_book_by_isbn_exists, [isbn(state)]},
+          {:call, __MODULE__, :find_book_by_author_matching, [author(state)]},
+          {:call, __MODULE__, :find_book_by_title_matching, [title(state)]}
         ]
       end
 
@@ -271,4 +271,35 @@ defmodule BookstoreTest do
     patterns = for p <- patterns, do: IO.chardata_to_string(p)
     String.contains?(string, patterns)
   end
+
+  ###
+  ### Test shims
+  ###
+  def add_book_existing(isbn, title, author, owned, avail) do
+    Bookstore.DB.add_book(isbn, title, author, owned, avail)
+  end
+
+  def add_book_new(isbn, title, author, owned, avail) do
+    Bookstore.DB.add_book(isbn, title, author, owned, avail)
+  end
+
+  def add_copy_existing(isbn), do: Bookstore.DB.add_copy(isbn)
+  def add_copy_new(isbn), do: Bookstore.DB.add_copy(isbn)
+
+  def borrow_copy_avail(isbn), do: Bookstore.DB.borrow_copy(isbn)
+  def borrow_copy_unavail(isbn), do: Bookstore.DB.borrow_copy(isbn)
+  def borrow_copy_unknown(isbn), do: Bookstore.DB.borrow_copy(isbn)
+
+  def return_copy_full(isbn), do: Bookstore.DB.return_copy(isbn)
+  def return_copy_existing(isbn), do: Bookstore.DB.return_copy(isbn)
+  def return_copy_unknown(isbn), do: Bookstore.DB.return_copy(isbn)
+
+  def find_book_by_isbn_exists(isbn), do: Bookstore.DB.find_book_by_isbn(isbn)
+  def find_book_by_isbn_unknown(isbn), do: Bookstore.DB.find_book_by_isbn(isbn)
+
+  def find_book_by_author_matching(author), do: Bookstore.DB.find_book_by_author(author)
+  def find_book_by_author_unknown(author), do: Bookstore.DB.find_book_by_author(author)
+
+  def find_book_by_title_matching(title), do: Bookstore.DB.find_book_by_title(title)
+  def find_book_by_title_unknown(title), do: Bookstore.DB.find_book_by_title(title)
 end
