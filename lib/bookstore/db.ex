@@ -50,9 +50,22 @@ defmodule Bookstore.DB do
   exercise to the reader.
   """
   def borrow_copy(isbn) do
-    :borrow_copy
-    |> run_query([isbn])
-    |> handle_single_update()
+    case find_book_by_isbn(isbn) do
+      {:error, _reason} = result ->
+        result
+
+      {:ok, []} ->
+        {:error, :not_found}
+
+      {:ok, _} ->
+        :borrow_copy
+        |> run_query([isbn])
+        |> handle_single_update()
+        |> case do
+          {:error, :not_found} -> {:error, :unavailable}
+          other -> other
+        end
+    end
   end
 
   @doc """
